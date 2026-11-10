@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SecAudit Web — Plataforma de Auditoría Defensiva y OWASP</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">🛡️</div>
+      <div>
+        <h1>SecAudit Web</h1>
+        <p class="subtitle">Suite de Auditoría Defensiva, Cabeceras HTTP y Análisis Estático OWASP</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span class="badge-ethical">Modo Defensivo / Análisis Local</span>
+      <button id="exportReportBtn" class="btn btn-secondary" title="Exportar informe en Markdown">
+        📄 Exportar Informe
+      </button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Resumen Ejecutivo -->
+    <section class="summary-grid" aria-label="Resumen de puntuación de seguridad">
+      <div class="card score-card">
+        <span class="card-label">Calificación Global</span>
+        <div class="grade-circle" id="globalGrade">A</div>
+        <span class="score-text" id="globalScoreText">Puntuación: 90 / 100</span>
+      </div>
+      <div class="card stat-card">
+        <span class="card-label">Cabeceras Evaluadas</span>
+        <div class="stat-number" id="headersPassCount">0 / 7</div>
+        <p class="stat-desc" id="headersSummaryDesc">Ejecuta el analizador para evaluar cabeceras HTTP.</p>
+      </div>
+      <div class="card stat-card">
+        <span class="card-label">Hallazgos en Código (SAST)</span>
+        <div class="stat-number" id="sastFindingsCount">0</div>
+        <p class="stat-desc" id="sastSummaryDesc">Sin patrones inseguros detectados aún.</p>
+      </div>
+      <div class="card stat-card">
+        <span class="card-label">Progreso Checklist OWASP</span>
+        <div class="stat-number" id="owaspProgressCount">0%</div>
+        <p class="stat-desc">Controles verificados del estándar OWASP Top 10.</p>
+      </div>
+    </section>
+
+    <!-- Navegación de Módulos -->
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="headers" role="tab" aria-selected="true">
+        🔒 1. Auditor de Cabeceras HTTP
+      </button>
+      <button class="tab" data-tab="sast" role="tab" aria-selected="false">
+        🧬 2. Analizador Estático HTML/JS
+      </button>
+      <button class="tab" data-tab="cors" role="tab" aria-selected="false">
+        🌐 3. Evaluador CORS y Cookies
+      </button>
+      <button class="tab" data-tab="owasp" role="tab" aria-selected="false">
+        📋 4. Checklist OWASP Top 10
+      </button>
+    </nav>
+
+    <!-- MÓDULO 1: CABECERAS HTTP -->
+    <section id="tab-headers" class="tab-panel active">
+      <div class="panel-grid">
+        <div class="card">
+          <div class="card-header">
+            <h2>Inspección de Cabeceras de Respuesta HTTP</h2>
+            <div class="preset-group">
+              <button class="btn btn-sm" id="loadInsecureHeaders">Ejemplo Vulnerable</button>
+              <button class="btn btn-sm" id="loadHardenedHeaders">Ejemplo Fortalecido</button>
+            </div>
+          </div>
+          <p class="helper-text">
+            Pega las cabeceras HTTP de tu servidor (obtenidas con <code>curl -I https://tu-sitio.com</code> o desde las DevTools del navegador) para auditar su postura de seguridad:
+          </p>
+          <textarea id="headersInput" rows="11" spellcheck="false"></textarea>
+          <div class="action-row">
+            <button id="analyzeHeadersBtn" class="btn btn-primary">Analizar Cabeceras</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Resultado del Diagnóstico y Remediación</h2>
+          <div id="headersResults" class="results-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÓDULO 2: ANALIZADOR ESTÁTICO HTML/JS -->
+    <section id="tab-sast" class="tab-panel">
+      <div class="panel-grid">
+        <div class="card">
+          <div class="card-header">
+            <h2>Auditoría Estática de Código Web (HTML / JS)</h2>
+            <div class="preset-group">
+              <button class="btn btn-sm" id="loadVulnerableCode">Cargar Muestra con Riesgos</button>
+              <button class="btn btn-sm" id="loadSafeCode">Cargar Muestra Segura</button>
+            </div>
+          </div>
+          <p class="helper-text">
+            Analiza fragmentos de código fuente en busca de sumideros DOM XSS (<code>innerHTML</code>, <code>eval</code>), enlaces sin protección <code>noopener</code>, recursos mixtos (<code>http://</code>), credenciales expuestas y formularios inseguros.
+          </p>
+          <textarea id="codeInput" rows="13" spellcheck="false"></textarea>
+          <div class="action-row">
+            <button id="analyzeCodeBtn" class="btn btn-primary">Ejecutar Análisis Estático</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Hallazgos de Seguridad en Código</h2>
+          <div id="codeResults" class="results-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÓDULO 3: EVALUADOR CORS Y COOKIES -->
+    <section id="tab-cors" class="tab-panel">
+      <div class="panel-grid">
+        <div class="card">
+          <h2>Simulador y Auditor de Políticas CORS y Cookies</h2>
+          <p class="helper-text">
+            Configura los parámetros de tu servidor para comprobar si existen combinaciones riesgosas de exposición entre orígenes (Cross-Origin) o robo de sesión.
+          </p>
+
+          <div class="form-group">
+            <label for="corsOrigin">Access-Control-Allow-Origin</label>
+            <input type="text" id="corsOrigin" value="*" placeholder="Ej. *, https://app.ejemplo.com, null" />
+          </div>
+
+          <div class="form-group">
+            <label for="corsCredentials">Access-Control-Allow-Credentials</label>
+            <select id="corsCredentials">
+              <option value="true">true</option>
+              <option value="false" selected>false</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="cookieString">Cabecera Set-Cookie a auditar</label>
+            <input type="text" id="cookieString" value="session_id=xyz987; Path=/" placeholder="session_id=abc; Secure; HttpOnly; SameSite=Strict" />
+          </div>
+
+          <div class="action-row">
+            <button id="analyzeCorsBtn" class="btn btn-primary">Evaluar Configuración</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Diagnóstico de Sesión y Orígenes</h2>
+          <div id="corsResults" class="results-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÓDULO 4: CHECKLIST OWASP TOP 10 -->
+    <section id="tab-owasp" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <h2>Guía de Auditoría Defensiva — OWASP Top 10</h2>
+          <button id="resetOwaspBtn" class="btn btn-sm">Reiniciar Checklist</button>
+        </div>
+        <p class="helper-text">
+          Marca los controles de seguridad verificados en tu aplicación web para calcular el nivel de cumplimiento y generar recomendaciones para el informe técnico.
+        </p>
+        <div id="owaspChecklist" class="checklist-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal para Exportar Informe -->
+  <div id="reportModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Informe Técnico de Auditoría Web (Markdown)</h2>
+        <button id="closeModalBtn" class="btn btn-sm">✕ Cerrar</button>
+      </div>
+      <textarea id="reportOutput" rows="16" readonly></textarea>
+      <div class="modal-actions">
+        <button id="copyReportBtn" class="btn btn-primary">📋 Copiar al Portapapeles</button>
+        <button id="downloadReportBtn" class="btn btn-secondary">⬇️ Descargar .md</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>
+      <strong>Aviso de Uso Ético:</strong> Esta herramienta realiza análisis estático y validación de configuraciones de forma 100% local con fines defensivos y educativos. Audita únicamente activos propios o con autorización expresa.
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
